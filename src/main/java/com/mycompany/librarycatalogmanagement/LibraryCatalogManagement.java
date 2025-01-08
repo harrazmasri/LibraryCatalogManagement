@@ -1,37 +1,48 @@
 package com.mycompany.librarycatalogmanagement;
-import javax.swing.*;
-import javax.swing.table.*;
-import java.awt.*;
-import java.awt.event.*;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.io.IOException;
+
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.HeadlessException;
+import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.text.Format;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
+import java.util.Date;
+import java.util.List;
 
-class Book {
-    protected int id;
-    protected String title, author, summary, date;
-    protected double price;
-
-    // assign details for the book object
-    Book (int id, String title, String author, String summary, String date, double price) {
-        this.id = id;
-        this.title = title;
-        this.author = author;
-        this.summary = summary;
-        this.date = date;
-        this.price = price;
-    }
-}
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
+import javax.swing.DefaultCellEditor;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPasswordField;
+import javax.swing.JScrollPane;
+import javax.swing.JSpinner;
+import javax.swing.JTable;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.SpinnerNumberModel;
+import javax.swing.SwingConstants;
+import javax.swing.table.DefaultTableModel;
 
 public class LibraryCatalogManagement {
-    private static Boolean createPageActive = false;
+    @SuppressWarnings("unused")
+    private static final Book bookObject = new Book();
+    private static final Booking bookingObject = new Booking();
     private static final String dates[]
         = { "1", "2", "3", "4", "5",
             "6", "7", "8", "9", "10",
@@ -41,9 +52,9 @@ public class LibraryCatalogManagement {
             "26", "27", "28", "29", "30",
             "31" };
     private static final String months[]
-        = { "Jan", "feb", "Mar", "Apr",
+        = { "Jan", "Feb", "Mar", "Apr",
             "May", "Jun", "July", "Aug",
-            "Sup", "Oct", "Nov", "Dec" };
+            "Sep", "Oct", "Nov", "Dec" };
     private static final String years[]
         = { "1995", "1996", "1997", "1998",
             "1999", "2000", "2001", "2002",
@@ -73,92 +84,23 @@ public class LibraryCatalogManagement {
         )
     ));
     
-    private static DefaultTableModel populateTableModel(String[] columns) {
-        DefaultTableModel model = new DefaultTableModel(columns, 0);
-        for (Book book : bookArray) {
-            model.addRow(new Object[] { book.id, book.title, book.author, book.summary, book.date, book.price, "Delete" });
-        }
-        return model;
-    }
+    private static ArrayList<Booking> bookingArray = new ArrayList<>(Arrays.asList(
+        new Booking(
+            "Halim",
+            101,
+            "Terselamat Daripadanya",
+            "30-09-2010"
+        )
+    ));
     
-    private static void saveIntoFile() {
-        Path path = Paths.get(System.getProperty("user.dir"), "books.txt");
-        
-        try {
-            Files.createDirectories(path.getParent());
-            
-            try (BufferedWriter writer = Files.newBufferedWriter(path)) {
-                for (Book book : bookArray) {
-                    String bookData = String.format(
-                        "%d,%s,%s,%s,%s,%.2f",
-                        book.id,
-                        book.title,
-                        book.author,
-                        book.summary,
-                        book.date,
-                        book.price
-                    );
-                    
-                    writer.write(bookData);
-                    writer.newLine();
-                }
-            }
-        }
-        catch (IOException e) {
-            JOptionPane.showMessageDialog(null, "Problem writing into file", "Error", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-    
-    private static ArrayList<Book> readFromFile() {
-        Path path = Paths.get(System.getProperty("user.dir"), "books.txt");
-        ArrayList<Book> books = new ArrayList<>();
+    private static User loggedUser = null;
+    private static String currentPage = "login";
 
-        try (BufferedReader reader = Files.newBufferedReader(path)) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                String[] parts = line.split(",", 6);
-                if (parts.length == 6) {
-                    try {
-                        int id = Integer.parseInt(parts[0].trim());
-                        String title = parts[1].trim();
-                        String author = parts[2].trim();
-                        String summary = parts[3].trim();
-                        String date = parts[4].trim();
-                        double price = Double.parseDouble(parts[5].trim());
-                        books.add(new Book(id, title, author, summary, date, price));
-                    } catch (NumberFormatException e) {
-                        System.err.println("Invalid number format in line: " + line + " - " + e.getMessage());
-                    }
-                } else {
-                    System.err.println("Malformed line (missing fields): " + line);
-                }
-            }
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(
-                null,
-                "Failed to read file: " + e.getMessage(),
-                "Error",
-                JOptionPane.ERROR_MESSAGE
-            );
-        }
-
-        return books;
+    public static Booking getBookingObject() {
+        return bookingObject;
     }
     
-    private static ArrayList<Book> searchArray(String searchValue) {
-        ArrayList<Book> filteredArray = new ArrayList<>();
-        Pattern pattern = Pattern.compile(searchValue, Pattern.CASE_INSENSITIVE);
-        
-        for (Book book : bookArray) {
-            if (pattern.matcher(book.title).find() || pattern.matcher(book.author).find() || pattern.matcher(book.summary).find()) {
-                filteredArray.add(book);
-            }
-        }
-        
-        return filteredArray;
-    }
-    
-    // Renderer for delete button
+    // Renderer for action buttons
     static class ButtonRenderer extends JButton implements javax.swing.table.TableCellRenderer {
         public ButtonRenderer() {
             setOpaque(true);
@@ -166,25 +108,38 @@ public class LibraryCatalogManagement {
 
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-            setText("Delete");
+            if (loggedUser != null && loggedUser.role.equals("staff")) {
+                setText("Delete");
+            } else {
+                setText("Book");
+            }
             return this;
         }
     }
-    
+
     static class ButtonEditor extends DefaultCellEditor {
-        private JButton button;
+        private final JButton button;
         private JTable table; // Reference to the JTable
         private int row;
 
         public ButtonEditor(JCheckBox checkBox) {
             super(checkBox);
-            button = new JButton("Delete");
+            button = new JButton();
             button.setOpaque(true);
-            button.addActionListener(e -> {
-                // Remove the row from bookArray and update the model
-                bookArray.remove(row); // Remove from ArrayList
-                ((DefaultTableModel) table.getModel()).removeRow(row); // Remove from table model
-                saveIntoFile(); // Save changes to file
+            button.addActionListener((@SuppressWarnings("unused") ActionEvent e) -> {
+                if (loggedUser != null && loggedUser.role.equals("staff")) {
+                    // Handle "Delete" action
+                    bookArray.remove(row); // Remove from ArrayList
+                    ((DefaultTableModel) table.getModel()).removeRow(row); // Remove from table model
+                    bookObject.saveIntoFile(bookArray); // Save changes to file
+                } else {
+                    Book bookSelected = bookArray.get(row);
+                    Format formatter = new SimpleDateFormat("dd-MM-yyyy");
+                    String today = formatter.format(new Date());
+                    Booking newBooking = new Booking(loggedUser.username, bookSelected.id, bookSelected.title, today);
+                    bookingArray.add(newBooking);
+                    bookingObject.createBooking(newBooking);
+                }
             });
         }
 
@@ -192,38 +147,421 @@ public class LibraryCatalogManagement {
         public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
             this.table = table; // Capture the reference to the JTable
             this.row = row; // Capture the row index
+            if (loggedUser != null && loggedUser.role.equals("staff")) {
+                button.setText("Delete");
+            } else {
+                button.setText("Book");
+            }
             return button;
         }
     }
     
-    public static void main(String[] args) {
-        // initialize saved book list
-        bookArray = readFromFile();
+    static class BookingButtonRenderer extends JButton implements javax.swing.table.TableCellRenderer {
+        public BookingButtonRenderer() {
+            setOpaque(true);
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            if (loggedUser != null && loggedUser.role.equals("staff")) {
+                setText("Returned");
+            }
+            return this;
+        }
+    }
+
+    static class BookingButtonEditor extends DefaultCellEditor {
+        private final JButton button;
+        private JTable table; // Reference to the JTable
+        private int row;
+
+        public BookingButtonEditor(JCheckBox checkBox) {
+            super(checkBox);
+            button = new JButton();
+            button.setOpaque(true);
+            button.addActionListener((@SuppressWarnings("unused") ActionEvent e) -> {
+                if (loggedUser != null && loggedUser.role.equals("staff")) {
+                    bookingArray.remove(row); // Remove from ArrayList
+                    ((DefaultTableModel) table.getModel()).removeRow(row); // Remove from table model
+                    bookingObject.saveIntoFile(bookingArray); // Save changes to file
+                }
+            });
+        }
+
+        @Override
+        public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
+            this.table = table; // Capture the reference to the JTable
+            this.row = row; // Capture the row index
+            if (loggedUser != null && loggedUser.role.equals("staff")) {
+                button.setText("Returned");
+            }
+            return button;
+        }
+    }
+
+    
+    private static void displayFrame(JFrame frame) {
+        frame.getContentPane().removeAll();
+
+        switch (currentPage) {
+            case "login" -> setupLoginPanel(frame);
+            case "table" -> setupTablePanel(frame);
+            case "create" -> setupCreatePanel(frame);
+            case "booking" -> setupBookingPanel(frame);
+            default -> {
+            }
+        }
+
+        // Revalidate and repaint to ensure components are displayed properly after the update
+        frame.revalidate();
+        frame.repaint();
+    }
+    
+    @SuppressWarnings({ "unchecked", "unused" })
+    private static void setupLoginPanel(JFrame frame) {
+        JPanel loginPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+
+        gbc.insets = new Insets(5,5,5,5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
         
-        // main frame will be the list of records
-        JFrame mainFrame = new JFrame();
-        mainFrame.setTitle("Lirary Catalog Management");
-        mainFrame.setSize(1280, 720);
-        mainFrame.setLayout(new BorderLayout());
-        
+        //Title Label
+        JLabel titleLabel = new JLabel("Library Catalog Management", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
+        loginPanel.add(titleLabel, gbc);
+
+        //Username Row
+        gbc.gridwidth = 1;
+        gbc.gridy = 1;
+        gbc.gridx = 0;
+        loginPanel.add(new JLabel("Username: "), gbc);
+
+        JTextField username = new JTextField(15);
+        gbc.gridx = 1;
+        loginPanel.add(username, gbc);
+
+        //Password Row
+        gbc.gridy = 2;
+        gbc.gridx = 0;
+        loginPanel.add(new JLabel("Password: "), gbc);
+
+        JPasswordField password = new JPasswordField(15);
+        gbc.gridx = 1;
+        loginPanel.add(password, gbc);
+
+        //Register Prompt Row
+        gbc.gridy = 3;
+        gbc.gridx = 0;
+        JPanel noAccountPanel = new JPanel(new GridBagLayout());
+        noAccountPanel.add(new JLabel("Don't have an account? "), gbc);
+
+        JButton changeRegisterButton = new JButton("Register now!");
+        gbc.gridx = 1;
+        noAccountPanel.add(changeRegisterButton, gbc);
+        loginPanel.add(noAccountPanel, gbc);
+
+        //Register Elements Row
+        JPanel registerElements = new JPanel(new GridBagLayout());
+        JLabel roleLabel = new JLabel("I am a: ");
+        @SuppressWarnings("rawtypes")
+        JComboBox role = new JComboBox();
+        role.addItem("Student");
+        role.addItem("Staff");
+
+        GridBagConstraints regGbc = new GridBagConstraints();
+        regGbc.insets = new Insets(5,5,5,5);
+        regGbc.gridx = 0;
+        regGbc.gridy = 0;
+        registerElements.add(roleLabel, regGbc);
+
+        regGbc.gridx = 1;
+        registerElements.add(role, regGbc);
+
+        registerElements.setVisible(false);
+        gbc.gridy = 4;
+        gbc.gridx = 0;
+        gbc.gridwidth = 2;
+        loginPanel.add(registerElements, gbc);
+
+        //Buttons Row
+
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        JButton loginButton = new JButton("Login");
+        JButton guestButton = new JButton("Guest");
+        JButton registerButton = new JButton("Register");
+        JButton backtoLoginButton = new JButton("Back");
+
+        buttonPanel.add(loginButton);
+        buttonPanel.add(guestButton);
+        buttonPanel.add(registerButton);
+        buttonPanel.add(backtoLoginButton);
+
+        registerButton.setVisible(false);
+        backtoLoginButton.setVisible(false);
+
+        gbc.gridy = 5;
+        loginPanel.add(buttonPanel, gbc);
+
+        // Action Listeners
+        changeRegisterButton.addActionListener(e -> {
+            registerElements.setVisible(true);
+            registerButton.setVisible(true);
+            backtoLoginButton.setVisible(true);
+
+            loginButton.setVisible(false);
+            guestButton.setVisible(false);
+            noAccountPanel.setVisible(false);
+        });
+
+        backtoLoginButton.addActionListener(e -> {
+            registerElements.setVisible(false);
+            registerButton.setVisible(false);
+            backtoLoginButton.setVisible(false);
+
+            loginButton.setVisible(true);
+            guestButton.setVisible(true);
+            noAccountPanel.setVisible(true);
+        });
+
+        registerButton.addActionListener(e -> {
+            try {
+                User userObject = new User();
+                String usernameText = username.getText();
+                String passwordText = new String(password.getPassword());
+                String roleText = role.getSelectedItem().toString();
+                userObject.registerUser(usernameText, passwordText, roleText);
+
+                JOptionPane.showMessageDialog(null, "You have been registered, please login");
+
+                registerElements.setVisible(false);
+                registerButton.setVisible(false);
+                backtoLoginButton.setVisible(false);
+
+                loginButton.setVisible(true);
+                guestButton.setVisible(true);
+                noAccountPanel.setVisible(true);
+            } catch (NullPointerException ex) {
+                JOptionPane.showMessageDialog(null, "Please fill in all details", "Warning", JOptionPane.WARNING_MESSAGE);
+            } catch (HeadlessException ex) {
+                JOptionPane.showMessageDialog(null, "Error occurred", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        loginButton.addActionListener(e -> {
+            try {
+                User userObject = new User();
+                String usernameText = username.getText();
+                String passwordText = new String(password.getPassword());
+                loggedUser = userObject.validateUser(usernameText, passwordText);
+    
+                if (loggedUser != null) {
+                    currentPage = "table";
+                    displayFrame(frame);
+                } else {
+                    JOptionPane.showMessageDialog(null, "Invalid username or password", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (HeadlessException ex) {
+                JOptionPane.showMessageDialog(null, "An error occurred", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+    
+        guestButton.addActionListener(e -> {
+            currentPage = "table";
+            displayFrame(frame);
+        });
+    
+        // Add login panel to frame
+        frame.add(loginPanel);
+        frame.revalidate();
+        frame.repaint();
+    };
+
+    private static void setupTablePanel(JFrame frame) {
+        // panels for mainframe
+        JPanel mainPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10); // Add padding between components
+
+        JPanel topPanel = new JPanel(new GridBagLayout());
+        topPanel.setBackground(Color.LIGHT_GRAY);
+
+        JLabel headerText = new JLabel("<html><h1 style='text-align: center;'>Library Catalog</h1></html>");
+        headerText.setHorizontalAlignment(SwingConstants.CENTER);
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
+        topPanel.add(headerText, gbc);
+
+        JPanel userPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        JLabel welcomeText = new JLabel(loggedUser != null ? "Welcome, " + loggedUser.username : "Logged as guest");
+        JButton loginButton = new JButton("Login");
+        JButton logoutButton = new JButton("Logout");
+
+        loginButton.addActionListener((@SuppressWarnings("unused") ActionEvent e) -> {
+            currentPage = "login";
+            displayFrame(frame);
+        });
+
+        logoutButton.addActionListener((@SuppressWarnings("unused") ActionEvent e) -> {
+            loggedUser = null;
+            currentPage = "login";
+            displayFrame(frame);
+        });
+
+        if(loggedUser != null) {
+            loginButton.setVisible(false);
+            welcomeText = new JLabel("<html>Welcome, <span style='color:blue;'>" + loggedUser.username + "</span></html>");
+        } else {
+            logoutButton.setVisible(false);
+        }
+
+        userPanel.add(welcomeText);
+        userPanel.add(loginButton);
+        userPanel.add(logoutButton);
+
+        gbc.gridx = 1;
+        gbc.gridy = 1;
+        gbc.gridwidth = 1;
+        gbc.anchor = GridBagConstraints.EAST;
+        topPanel.add(userPanel, gbc);
+
+        // Add top panel to main panel
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        mainPanel.add(topPanel, gbc);
+
+        // Search panel
+        JPanel searchPanel = new JPanel(new GridBagLayout());
+        JTextField searchInput = new JTextField(30);
+        JButton clearButton = new JButton("Clear");
+        JButton searchButton = new JButton("Search");
+
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 2.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        searchPanel.add(searchInput, gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        gbc.weightx = 0;
+        gbc.fill = GridBagConstraints.NONE;
+        searchPanel.add(clearButton, gbc);
+
+        gbc.gridx = 2;
+        gbc.gridy = 0;
+        searchPanel.add(searchButton, gbc);
+
+        // Add search panel to main panel
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        mainPanel.add(searchPanel, gbc);
+
+        // Table panel
+        JPanel tablePanel = new JPanel(new BorderLayout());
+        String[] columns = loggedUser == null
+            ? new String[]{"ID", "Title", "Author", "Summary", "Date", "Price"}
+            : new String[]{"ID", "Title", "Author", "Summary", "Date", "Price", "Action"};
+        DefaultTableModel tableModel = bookObject.populateTableModel(columns, loggedUser, bookArray);
+        JTable bookListTable = new JTable(tableModel);
+        JScrollPane scrollPane = new JScrollPane(bookListTable);
+
+        if (loggedUser != null) {
+            bookListTable.getColumn("Action").setCellRenderer(new ButtonRenderer());
+            bookListTable.getColumn("Action").setCellEditor(new ButtonEditor(new JCheckBox()));
+        }
+
+        tablePanel.add(scrollPane, BorderLayout.CENTER);
+
+        searchButton.addActionListener( (@SuppressWarnings("unused") ActionEvent e) -> {
+            bookArray = bookObject.searchArray(searchInput.getText(), bookArray);
+            bookListTable.setModel(bookObject.populateTableModel(columns, loggedUser, bookArray));
+            bookListTable.getColumn("Action").setCellRenderer(new ButtonRenderer());
+            bookListTable.getColumn("Action").setCellEditor(new ButtonEditor(new JCheckBox()));
+        });
+
+        clearButton.addActionListener((@SuppressWarnings("unused") ActionEvent e) -> {
+            searchInput.setText("");
+            bookArray = bookObject.readFromFile();
+            bookListTable.setModel(bookObject.populateTableModel(columns, loggedUser, bookArray));
+            bookListTable.getColumn("Action").setCellRenderer(new ButtonRenderer());
+            bookListTable.getColumn("Action").setCellEditor(new ButtonEditor(new JCheckBox()));
+        });
+
+        // Add table panel to main panel
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weightx = 1.0;
+        gbc.weighty = 1.0;
+        mainPanel.add(tablePanel, gbc);
+
+        // Bottom panel with buttons
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        JButton createPageButton = new JButton("Add New Book");
+        JButton bookingListButton = new JButton("Booking List");
+
+        createPageButton.setVisible(loggedUser != null && "staff".equals(loggedUser.role));
+        bookingListButton.setVisible(loggedUser != null);
+
+        createPageButton.addActionListener(_ -> {
+            currentPage = "create";
+            displayFrame(frame);
+        });
+
+        bookingListButton.addActionListener(_ -> {
+            try {
+                currentPage = "booking";
+                displayFrame(frame);
+            } catch (Exception exception) {
+                JOptionPane.showMessageDialog(null, "Error: " + exception.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        bottomPanel.add(createPageButton);
+        bottomPanel.add(bookingListButton);
+
+        // Add bottom panel to main panel
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 0;
+        gbc.weighty = 0;
+        mainPanel.add(bottomPanel, gbc);
+
+        // Add main panel to frame
+        frame.setLayout(new BorderLayout());
+        frame.add(mainPanel, BorderLayout.CENTER);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void setupCreatePanel(JFrame frame) {
         // panels for mainframe
         JPanel topPanelMain = new JPanel();
-        topPanelMain.setLayout(new BoxLayout(topPanelMain, BoxLayout.X_AXIS));
-        
+        topPanelMain.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
         JPanel centerPanelMain = new JPanel();
         centerPanelMain.setLayout(new BoxLayout(centerPanelMain, BoxLayout.Y_AXIS));
-        
+
         JPanel bottomPanelMain = new JPanel();
         bottomPanelMain.setLayout(new FlowLayout());
-        
+
         // top panel elements
-        JLabel headerText = new JLabel("<html><h1>Catalog</h1></html>");
+        JLabel headerText = new JLabel("<html><h1 style='text-align: center;'>Create book</h1></html>");
         topPanelMain.add(headerText);
-        
+        topPanelMain.setBackground(Color.LIGHT_GRAY);
+        topPanelMain.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
         // center panel elements
         JPanel createPanel = new JPanel();  // panel for create page
         createPanel.setLayout(new BoxLayout(createPanel, BoxLayout.Y_AXIS));
-        
+
         // form
         JTextField idInput = new JTextField();
         JTextField titleInput = new JTextField();
@@ -231,14 +569,17 @@ public class LibraryCatalogManagement {
         JTextArea summaryInput = new JTextArea();
         JPanel dateInput = new JPanel();
         dateInput.setLayout(new BoxLayout(dateInput, BoxLayout.X_AXIS));
+        @SuppressWarnings("rawtypes")
         JComboBox dateDayInput = new JComboBox();
         for (String day : dates) {
             dateDayInput.addItem(day);
         }
+        @SuppressWarnings("rawtypes")
         JComboBox dateMonthInput = new JComboBox();
         for (String month : months) {
             dateMonthInput.addItem(month);
         }
+        @SuppressWarnings("rawtypes")
         JComboBox dateYearInput = new JComboBox();
         for (String year : years) {
             dateYearInput.addItem(year);
@@ -247,190 +588,361 @@ public class LibraryCatalogManagement {
         dateInput.add(dateMonthInput);
         dateInput.add(dateYearInput);
         JSpinner priceInput = new JSpinner(new SpinnerNumberModel(0.0, 0.0, Integer.MAX_VALUE, 0.1));
-        
-        createPanel.add(new JLabel("Id"));
-        createPanel.add(idInput);
-        createPanel.add(new JLabel("Title"));
-        createPanel.add(titleInput);
-        createPanel.add(new JLabel("Author"));
-        createPanel.add(authorInput);
-        createPanel.add(new JLabel("Summary"));
-        createPanel.add(summaryInput);
-        createPanel.add(new JLabel("Date"));
-        createPanel.add(dateInput);
-        createPanel.add(new JLabel("Price"));
-        createPanel.add(priceInput);
-        
-        
-        JPanel tablePanel = new JPanel();   // panel for table page
-        tablePanel.setLayout(new BoxLayout(tablePanel, BoxLayout.Y_AXIS));
-        
-        JPanel searchContainer = new JPanel();
-        searchContainer.setLayout(new BoxLayout(searchContainer, BoxLayout.X_AXIS));
-        searchContainer.setPreferredSize(new Dimension(1280, 30));
-        
-        JTextField searchInput = new JTextField();
-        searchInput.setMaximumSize(new Dimension(980, 25));
-        
-        JButton clearButton = new JButton("Clear");
-        clearButton.setMaximumSize(new Dimension(100, 25));
-        
-        JButton searchButton = new JButton("Search");
-        searchButton.setMaximumSize(new Dimension(200, 25));
-        
-         // Sample columns
-        String[] columns = { "ID", "Title", "Author", "Summary", "Date", "Price", "Action" };
-        DefaultTableModel tableModel = populateTableModel(columns);
-        JTable bookListTable = new JTable(tableModel);
 
-        // Add button renderer and editor
-        bookListTable.getColumn("Action").setCellRenderer(new ButtonRenderer());
-        bookListTable.getColumn("Action").setCellEditor(new ButtonEditor(new JCheckBox()));
-
-        
-        searchButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                bookArray = searchArray(searchInput.getText());
-                // update table
-                bookListTable.setModel(populateTableModel(columns));
-                // Reapply button renderer and editor to the "Action" column
-                bookListTable.getColumn("Action").setCellRenderer(new ButtonRenderer());
-                bookListTable.getColumn("Action").setCellEditor(new ButtonEditor(new JCheckBox()));
-            }
-        });
-        
-        clearButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                searchInput.setText("");
-                bookArray = readFromFile();
-                bookListTable.setModel(populateTableModel(columns));
-                // Reapply button renderer and editor to the "Action" column
-                bookListTable.getColumn("Action").setCellRenderer(new ButtonRenderer());
-                bookListTable.getColumn("Action").setCellEditor(new ButtonEditor(new JCheckBox()));
-            }
-        });
-
-        searchContainer.add(searchInput);
-        searchContainer.add(clearButton);
-        searchContainer.add(searchButton); 
-        tablePanel.add(searchContainer);
-        tablePanel.add(bookListTable);
         centerPanelMain.add(createPanel);
-        centerPanelMain.add(tablePanel);
         
-        createPanel.setVisible(false);
-        tablePanel.setVisible(true);
-        
-        // bottom panel element
-        JButton createPageButton = new JButton("Add new book");
+        // bottom panel elements
         JButton createBookButton = new JButton("Create");
         JButton backBookButton = new JButton("Back");
-        
-        createPageButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                createPageActive = true;
-                headerText.setText("<html><h1>Create Book</h1></html>");
-                tablePanel.setVisible(false);
-                createPanel.setVisible(true);
-                createPageButton.setVisible(false);
-                createBookButton.setVisible(true);
-                backBookButton.setVisible(true);
-            }
-        });
-        
-        createBookButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    priceInput.commitEdit();
-                    Double priceValue = (Double) priceInput.getValue();
-                    
-                    // append into book array list
-                    bookArray.add(new Book(
+
+        createBookButton.addActionListener((@SuppressWarnings("unused") ActionEvent e) -> {
+            try {
+                priceInput.commitEdit();
+                Double priceValue = (Double) priceInput.getValue();
+                
+                // append into book array list
+                bookArray.add(new Book(
                         Integer.parseInt(idInput.getText()),
                         titleInput.getText(),
                         authorInput.getText(),
                         summaryInput.getText(),
                         dateDayInput.getSelectedItem().toString() +"-"+ dateMonthInput.getSelectedItem().toString() +"-"+ dateYearInput.getSelectedItem().toString(),
                         Math.round(priceValue * 100.0) / 100.0
-                    ));
-                    
-                    // save current array into file
-                    saveIntoFile();
+                ));
+                
+                // save current array into file
+                bookObject.saveIntoFile(bookArray);
+                
+                // reset form inputs
+                idInput.setText("");
+                titleInput.setText("");
+                authorInput.setText("");
+                summaryInput.setText("");
+                dateDayInput.setSelectedIndex(-1);
+                dateMonthInput.setSelectedIndex(-1);
+                dateYearInput.setSelectedIndex(-1);
+                priceInput.setValue(0.0);
+                
+                // change page state
+                currentPage = "table";
+                displayFrame(frame);
+            }
+            catch (NullPointerException exception) {
+                JOptionPane.showMessageDialog(null, "Please fill in all inputs", "Warning", JOptionPane.WARNING_MESSAGE);
+            }
+            catch (NumberFormatException exception) {
+                JOptionPane.showMessageDialog(null, "Please enter number for id and price", "Warning", JOptionPane.WARNING_MESSAGE);
+            }
+            catch (ParseException exception) {
+                JOptionPane.showMessageDialog(null, "Error: "+exception.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
 
-                    // update table to update with current array
-                    DefaultTableModel updatedModel = populateTableModel(columns);
-                    bookListTable.setModel(updatedModel);
-                    // Reapply button renderer and editor to the "Action" column
-                    bookListTable.getColumn("Action").setCellRenderer(new ButtonRenderer());
-                    bookListTable.getColumn("Action").setCellEditor(new ButtonEditor(new JCheckBox()));
-                    
-                    // reset form inputs
-                    idInput.setText("");
-                    titleInput.setText("");
-                    authorInput.setText("");
-                    summaryInput.setText("");
-                    dateDayInput.setSelectedIndex(-1);
-                    dateMonthInput.setSelectedIndex(-1);
-                    dateYearInput.setSelectedIndex(-1);
-                    priceInput.setValue(0.0);
-                    
-                    // change page state
-                    createPageActive = false;
-                    headerText.setText("<html><h1>Catalog</h1></html>");
-                    tablePanel.setVisible(true);
-                    createPanel.setVisible(false);
-                    createPageButton.setVisible(true);
-                    createBookButton.setVisible(false);
-                    backBookButton.setVisible(false);
-                }
-                catch (NullPointerException exception) {
-                    JOptionPane.showMessageDialog(null, "Please fill in all inputs", "Warning", JOptionPane.WARNING_MESSAGE);
-                } 
-                catch (NumberFormatException exception) {
-                    JOptionPane.showMessageDialog(null, "Please enter number for id and price", "Warning", JOptionPane.WARNING_MESSAGE);
-                } 
-                catch (Exception exception) {
-                    JOptionPane.showMessageDialog(null, "Error: "+exception.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-                }
+        backBookButton.addActionListener((@SuppressWarnings("unused") ActionEvent e) -> {
+            try {
+                currentPage = "table";
+                displayFrame(frame);
+            }
+            catch (Exception exception) {
+                JOptionPane.showMessageDialog(null, "Error: "+exception.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
         
-        backBookButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    // change page state
-                    createPageActive = false;
-                    headerText.setText("<html><h1>Catalog</h1></html>");
-                    tablePanel.setVisible(true);
-                    createPanel.setVisible(false);
-                    createPageButton.setVisible(true);
-                    createBookButton.setVisible(false);
-                    backBookButton.setVisible(false);
-                }
-                catch(Exception exception) {
-                    JOptionPane.showMessageDialog(null, "Error occured: " + exception.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-                }
-            }
-        });
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+
+        gbc.gridx = 1;
+        bottomPanelMain.add(createBookButton, gbc);
+
+        gbc.gridx = 2;
+        bottomPanelMain.add(backBookButton, gbc);
         
-        bottomPanelMain.add(createPageButton);
         bottomPanelMain.add(createBookButton);
         bottomPanelMain.add(backBookButton);
         
-        createPageButton.setVisible(true);
-        createBookButton.setVisible(false);
-        backBookButton.setVisible(false);
+        idInput.setPreferredSize(new Dimension(400, 25));
+        titleInput.setPreferredSize(new Dimension(400, 25));
+        authorInput.setPreferredSize(new Dimension(400, 25));
+        summaryInput.setPreferredSize(new Dimension(400, 100)); // Larger for multiline text
+        dateDayInput.setPreferredSize(new Dimension(60, 25));
+        dateMonthInput.setPreferredSize(new Dimension(100, 25));
+        dateYearInput.setPreferredSize(new Dimension(80, 25));
+        priceInput.setPreferredSize(new Dimension(100, 25));
+
+        // Add components for user-friendly and improved UI layout
+        createPanel.setLayout(new GridBagLayout());
+        gbc.insets = new Insets(10, 10, 10, 10); // Add spacing around components
+
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        // ID Label and Input
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        createPanel.add(new JLabel("ID:"), gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        createPanel.add(idInput, gbc);
+
+        // Title Label and Input
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        createPanel.add(new JLabel("Title:"), gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 1;
+        createPanel.add(titleInput, gbc);
+
+        // Author Label and Input
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        createPanel.add(new JLabel("Author:"), gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 2;
+        createPanel.add(authorInput, gbc);
+
+        // Summary Label and Input
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        createPanel.add(new JLabel("Summary:"), gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 3;
+        gbc.gridwidth = 2;
+        createPanel.add(summaryInput, gbc);
+        gbc.gridwidth = 1;
+
+        // Date Label and Inputs
+        gbc.gridx = 0;
+        gbc.gridy = 4;
+        createPanel.add(new JLabel("Date:"), gbc);
+
+        // Day Dropdown
+        gbc.gridx = 1;
+        createPanel.add(dateDayInput, gbc);
+
+        // Month Dropdown
+        gbc.gridx = 2;
+        createPanel.add(dateMonthInput, gbc);
+
+        // Year Dropdown
+        gbc.gridx = 3;
+        createPanel.add(dateYearInput, gbc);
+
+        // Price Label and Input
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        createPanel.add(new JLabel("Price:"), gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 5;
+        gbc.gridwidth = 2;
+        createPanel.add(priceInput, gbc);
+        gbc.gridwidth = 1;
+
+        // Buttons (Create and Back)
+        JPanel buttonPanel = new JPanel(new GridBagLayout());
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.insets = new Insets(5, 10, 5, 10);
+        buttonPanel.add(createBookButton, gbc);
+
+        gbc.gridx = 1;
+        buttonPanel.add(backBookButton, gbc);
+       
+        gbc.gridx = 0;
+        gbc.gridy = 6;
+        gbc.gridwidth = 4;
+        createPanel.add(buttonPanel, gbc);
+        bottomPanelMain.add(createBookButton);
+        bottomPanelMain.add(backBookButton);
         
-        mainFrame.add(topPanelMain, BorderLayout.NORTH);
-        mainFrame.add(centerPanelMain, BorderLayout.CENTER);
-        mainFrame.add(bottomPanelMain, BorderLayout.SOUTH);
+        frame.add(topPanelMain, BorderLayout.NORTH);
+        frame.add(centerPanelMain, BorderLayout.CENTER);
+        frame.add(bottomPanelMain, BorderLayout.SOUTH);
+    }
+    
+    private static void setupBookingPanel(JFrame frame) {
+        bookingArray = bookingObject.getBooking(loggedUser!=null && loggedUser.role.equals("student")? loggedUser.username : null);
+        
+        // panels for mainframe
+        JPanel mainPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10); // Add padding between components
+
+        // Top Panel
+        JPanel topPanel = new JPanel(new GridBagLayout());
+        topPanel.setBackground(Color.LIGHT_GRAY);
+
+        // Header
+        JLabel headerText = new JLabel("<html><h1 style='text-align: center;'>" + (loggedUser != null && loggedUser.role.equals("student") ? "My " : "") + "Booking List</h1></html>");
+        headerText.setHorizontalAlignment(SwingConstants.CENTER);
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
+        topPanel.add(headerText, gbc);
+
+        // User info and buttons
+        JPanel userPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        JLabel welcomeText = new JLabel(loggedUser != null ? "Welcome, " + loggedUser.username : "Logged as guest");
+        JButton loginButton = new JButton("Login");
+        JButton logoutButton = new JButton("Logout");
+
+        loginButton.addActionListener(_ -> {
+            currentPage = "login";
+            displayFrame(frame);
+        });
+    
+        logoutButton.addActionListener(_ -> {
+            loggedUser = null; // Reset logged user
+            currentPage = "login";
+            displayFrame(frame);
+        });
+    
+        if (loggedUser == null) {
+            logoutButton.setVisible(false);
+        } else {
+            loginButton.setVisible(false);
+        }
+    
+        userPanel.add(welcomeText);
+        userPanel.add(loginButton);
+        userPanel.add(logoutButton);
+    
+        gbc.gridx = 1;
+        gbc.gridy = 1;
+        gbc.anchor = GridBagConstraints.EAST;
+        topPanel.add(userPanel, gbc);
+    
+        // Add top panel to main panel
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        mainPanel.add(topPanel, gbc);
+    
+        // Search panel
+        JPanel searchPanel = new JPanel(new GridBagLayout());
+        JTextField searchInput = new JTextField(30);
+        JButton clearButton = new JButton("Clear");
+        JButton searchButton = new JButton("Search");
+    
+        // Search input field
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 2.0; // Allow the search field to grow
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        searchPanel.add(searchInput, gbc);
+    
+        // Clear button
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        gbc.weightx = 0; // Prevent button from growing
+        gbc.fill = GridBagConstraints.NONE;
+        searchPanel.add(clearButton, gbc);
+    
+        // Search button
+        gbc.gridx = 2;
+        gbc.gridy = 0;
+        searchPanel.add(searchButton, gbc);
+    
+        // Add search panel to main panel
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        mainPanel.add(searchPanel, gbc);
+    
+        // Table panel
+        JPanel tablePanel = new JPanel(new BorderLayout());
+        List<String> columnsList = new ArrayList<>(Arrays.asList("ID", "Title", "Borrower", "Borrowed Date"));
+        if (loggedUser != null && loggedUser.role.equals("staff")) {
+            columnsList.add("Action");
+        }
+        String[] columns = columnsList.toArray(String[]::new);
+        DefaultTableModel tableModel = bookingObject.populateTableModel(columns, loggedUser, bookingArray);
+        JTable bookingListTable = new JTable(tableModel);
+        JScrollPane scrollPane = new JScrollPane(bookingListTable);
+    
+        if (loggedUser != null && loggedUser.role.equals("staff")) {
+            bookingListTable.getColumn("Action").setCellRenderer(new BookingButtonRenderer());
+            bookingListTable.getColumn("Action").setCellEditor(new BookingButtonEditor(new JCheckBox()));
+        }
+    
+        searchButton.addActionListener(_ -> {
+            bookingArray = bookingObject.searchArray(searchInput.getText(), bookingArray,
+                loggedUser != null && loggedUser.role.equals("student") ? loggedUser.username : null);
+            bookingListTable.setModel(bookingObject.populateTableModel(columns, loggedUser, bookingArray));
+            if (loggedUser != null && loggedUser.role.equals("staff")) {
+                bookingListTable.getColumn("Action").setCellRenderer(new BookingButtonRenderer());
+                bookingListTable.getColumn("Action").setCellEditor(new BookingButtonEditor(new JCheckBox()));
+            }
+        });
+    
+        clearButton.addActionListener(_ -> {
+            searchInput.setText("");
+            bookingArray = bookingObject.getBooking(loggedUser != null && loggedUser.role.equals("student") ? loggedUser.username : null);
+            bookingListTable.setModel(bookingObject.populateTableModel(columns, loggedUser, bookingArray));
+            if (loggedUser != null && loggedUser.role.equals("staff")) {
+                bookingListTable.getColumn("Action").setCellRenderer(new BookingButtonRenderer());
+                bookingListTable.getColumn("Action").setCellEditor(new BookingButtonEditor(new JCheckBox()));
+            }
+        });
+    
+        tablePanel.add(scrollPane, BorderLayout.CENTER);
+    
+        // Add table panel to main panel
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weightx = 1.0;
+        gbc.weighty = 1.0;
+        mainPanel.add(tablePanel, gbc);
+    
+        // Bottom panel with back button
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        JButton backPageButton = new JButton("Back");
+    
+        backPageButton.addActionListener(_ -> {
+            currentPage = "table";
+            displayFrame(frame);
+        });
+    
+        bottomPanel.add(backPageButton);
+    
+        // Add bottom panel to main panel
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 0;
+        gbc.weighty = 0;
+        mainPanel.add(bottomPanel, gbc);
+    
+        // Add main panel to frame
+        frame.setLayout(new BorderLayout());
+        frame.add(mainPanel, BorderLayout.CENTER);
+    }
+
+    
+    @SuppressWarnings({"Convert2Lambda"})
+    public static void main(String[] args) {
+        // initialize saved book list
+        bookArray = bookObject.readFromFile();
+        
+        // main frame will be the list of records
+        JFrame mainFrame = new JFrame("Library Catalog Management");
+        mainFrame.setSize(1280, 720);
+        mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        mainFrame.setLayout(new BorderLayout());
+        
+        displayFrame(mainFrame);
+        
+        mainFrame.getContentPane().setBackground(Color.WHITE);
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         mainFrame.setVisible(true);
         
     }
-}
+};   
