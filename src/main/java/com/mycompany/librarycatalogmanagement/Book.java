@@ -81,12 +81,7 @@ class Book {
                 }
             }
         } catch (IOException e) {
-            JOptionPane.showMessageDialog(
-                null,
-                "Failed to read file: " + e.getMessage(),
-                "Error",
-                JOptionPane.ERROR_MESSAGE
-            );
+            System.out.println("Failed to read file: " + e.getMessage());
         }
 
         return books;

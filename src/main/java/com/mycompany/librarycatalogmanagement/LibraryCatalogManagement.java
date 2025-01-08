@@ -506,8 +506,8 @@ public class LibraryCatalogManagement {
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
         JButton createPageButton = new JButton("Add New Book");
         JButton bookingListButton = new JButton("Booking List");
-
-        createPageButton.setVisible(loggedUser != null && "staff".equals(loggedUser.role));
+        
+        createPageButton.setVisible(loggedUser != null && loggedUser.role.equals("staff"));
         bookingListButton.setVisible(loggedUser != null);
 
         createPageButton.addActionListener(_ -> {

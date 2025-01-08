@@ -48,7 +48,7 @@ public class User {
                     "%s,%s,%s",
                     inputUsername,
                     hashedPassword,
-                    inputRole
+                    inputRole.toLowerCase()
                 );
                 writer.write(userData);
                 writer.newLine(); // Add a new line for each user
@@ -90,12 +90,7 @@ public class User {
                 }
             }
         } catch (IOException e) {
-            JOptionPane.showMessageDialog(
-                null,
-                "Failed to read file: " + e.getMessage(),
-                "Error",
-                JOptionPane.ERROR_MESSAGE
-            );
+            System.out.println("Failed to read file: " + e.getMessage());
         } catch (NoSuchAlgorithmException e) {
             JOptionPane.showMessageDialog(
                 null,
