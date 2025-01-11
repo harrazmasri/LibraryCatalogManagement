@@ -270,6 +270,16 @@ public class LibraryCatalogManagement {
         JComboBox role = new JComboBox();
         role.addItem("Student");
         role.addItem("Staff");
+        JLabel warning = new JLabel();
+        warning.setText("*If you are a staff member, please kindly refer to our admin*");
+        warning.setForeground(Color.RED);
+        role.addActionListener(e -> {
+            if (role.getSelectedItem().equals("Staff")) {
+                warning.setVisible(true);
+            } else {
+                warning.setVisible(false);
+            }
+        });
 
         GridBagConstraints regGbc = new GridBagConstraints();
         regGbc.insets = new Insets(5,5,5,5);
@@ -279,6 +289,10 @@ public class LibraryCatalogManagement {
 
         regGbc.gridx = 1;
         registerElements.add(role, regGbc);
+
+        regGbc.gridx = 1;
+        regGbc.gridy = 1;
+        registerElements.add(warning, regGbc);
 
         registerElements.setVisible(false);
         gbc.gridy = 4;
