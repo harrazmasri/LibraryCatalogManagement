@@ -107,7 +107,7 @@ class Book {
         for (Book book : bookArray) {
             if (loggedUser != null) {
                 switch (loggedUser.role) {
-                    case "staff" -> model.addRow(new Object[] { book.id, book.title, book.author, book.summary, book.date, book.price, "Delete" });
+                    case "staff" -> model.addRow(new Object[] { book.id, book.title, book.author, book.summary, book.date, book.price, "Edit", "Delete" });
                     case "student" -> model.addRow(new Object[] { book.id, book.title, book.author, book.summary, book.date, book.price, "Book" });
                     default -> model.addRow(new Object[] { book.id, book.title, book.author, book.summary, book.date, book.price });
                 }
