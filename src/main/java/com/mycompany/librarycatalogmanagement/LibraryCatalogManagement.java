@@ -271,7 +271,7 @@ public class LibraryCatalogManagement {
         role.addItem("Student");
         role.addItem("Staff");
         JLabel warning = new JLabel();
-        warning.setText("*If you are a staff member, please kindly refer to our admin*");
+        warning.setText("*If you are a staff member, please kindly refer to our admin for your registration*");
         warning.setForeground(Color.RED);
         role.addActionListener(e -> {
             if (role.getSelectedItem().equals("Staff")) {
