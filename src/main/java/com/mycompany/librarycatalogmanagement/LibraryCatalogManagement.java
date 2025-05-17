@@ -72,7 +72,8 @@ public class LibraryCatalogManagement {
             "David Martinez",
             "This book uncovers the secrets and complex engineering measures took to build a skyscraper.",
             "20-08-2010",
-            23.25
+            23.25,
+            false
         ),
         new Book(
             102,
@@ -80,7 +81,8 @@ public class LibraryCatalogManagement {
             "July Haleem",
             "A story of a unbeknowned kid born out of poverty rising up into dictatorship.",
             "20-08-2010",
-            89.90
+            89.90,
+            false
         )
     ));
     
@@ -131,7 +133,7 @@ public class LibraryCatalogManagement {
         private int row;
         private int column;
 
-        public ButtonEditor(JCheckBox checkBox) {
+        public ButtonEditor(JCheckBox checkBox, JTable bookListTable, String[] columns) {
             super(checkBox);
             button = new JButton();
             button.setOpaque(true);
@@ -153,12 +155,33 @@ public class LibraryCatalogManagement {
                             bookObject.saveIntoFile(bookArray);
                         }
                     } else {
-                        Book bookSelected = bookArray.get(row);
+                        // filter bookarray to exclude borrowed book
+                        ArrayList<Book> availableBooksArray = new ArrayList<>();
+                    
+                        for (Book book : bookArray) {
+                            if (!book.isBorrowed) {
+                                availableBooksArray.add(book); // Only add available books
+                            }
+                        }
+                        
+                        Book bookSelected = availableBooksArray.get(row);
                         SimpleDateFormat formatter = new SimpleDateFormat("dd-MM-yyyy");
                         String today = formatter.format(new Date());
                         Booking newBooking = new Booking(loggedUser.username, bookSelected.id, bookSelected.title, today);
                         bookingArray.add(newBooking);
                         bookingObject.createBooking(newBooking);
+                    }
+                    
+                    // update table
+                    bookArray = bookObject.readFromFile();
+                    bookListTable.setModel(bookObject.populateTableModel(columns, loggedUser, bookArray));
+                    if (loggedUser != null) {
+                        bookListTable.getColumn("Action").setCellRenderer(new ButtonRenderer());
+                        bookListTable.getColumn("Action").setCellEditor(new ButtonEditor(new JCheckBox(), bookListTable, columns));
+                        if (loggedUser.role.equals("staff")) {
+                            bookListTable.getColumn("Edit").setCellRenderer(new ButtonRenderer());
+                            bookListTable.getColumn("Edit").setCellEditor(new ButtonEditor(new JCheckBox(), bookListTable, columns));
+                        }
                     }
                 }
             });
@@ -211,6 +234,10 @@ public class LibraryCatalogManagement {
             button.setOpaque(true);
             button.addActionListener((@SuppressWarnings("unused") ActionEvent e) -> {
                 if (loggedUser != null && loggedUser.role.equals("staff")) {
+                    // update book as borrowed
+                    Book bookObject = new Book();
+                    bookObject.updateBook(bookingArray.get(row).bookId, false);
+
                     bookingArray.remove(row); // Remove from ArrayList
                     ((DefaultTableModel) table.getModel()).removeRow(row); // Remove from table model
                     bookingObject.saveIntoFile(bookingArray); // Save changes to file
@@ -521,10 +548,10 @@ public class LibraryCatalogManagement {
 
         if (loggedUser != null) {
             bookListTable.getColumn("Action").setCellRenderer(new ButtonRenderer());
-            bookListTable.getColumn("Action").setCellEditor(new ButtonEditor(new JCheckBox()));
+            bookListTable.getColumn("Action").setCellEditor(new ButtonEditor(new JCheckBox(), bookListTable, columns));
             if (loggedUser.role.equals("staff")) {
                 bookListTable.getColumn("Edit").setCellRenderer(new ButtonRenderer());
-                bookListTable.getColumn("Edit").setCellEditor(new ButtonEditor(new JCheckBox()));
+                bookListTable.getColumn("Edit").setCellEditor(new ButtonEditor(new JCheckBox(), bookListTable, columns));
             }
         }
 
@@ -535,10 +562,10 @@ public class LibraryCatalogManagement {
             bookListTable.setModel(bookObject.populateTableModel(columns, loggedUser, bookArray));
             if (loggedUser != null) {
                 bookListTable.getColumn("Action").setCellRenderer(new ButtonRenderer());
-                bookListTable.getColumn("Action").setCellEditor(new ButtonEditor(new JCheckBox()));
+                bookListTable.getColumn("Action").setCellEditor(new ButtonEditor(new JCheckBox(), bookListTable, columns));
                 if (loggedUser.role.equals("staff")) {
                     bookListTable.getColumn("Edit").setCellRenderer(new ButtonRenderer());
-                    bookListTable.getColumn("Edit").setCellEditor(new ButtonEditor(new JCheckBox()));
+                    bookListTable.getColumn("Edit").setCellEditor(new ButtonEditor(new JCheckBox(), bookListTable, columns));
                 }
             }
         });
@@ -549,10 +576,10 @@ public class LibraryCatalogManagement {
             bookListTable.setModel(bookObject.populateTableModel(columns, loggedUser, bookArray));
             if (loggedUser != null) {
                 bookListTable.getColumn("Action").setCellRenderer(new ButtonRenderer());
-                bookListTable.getColumn("Action").setCellEditor(new ButtonEditor(new JCheckBox()));
+                bookListTable.getColumn("Action").setCellEditor(new ButtonEditor(new JCheckBox(), bookListTable, columns));
                 if (loggedUser.role.equals("staff")) {
                     bookListTable.getColumn("Edit").setCellRenderer(new ButtonRenderer());
-                    bookListTable.getColumn("Edit").setCellEditor(new ButtonEditor(new JCheckBox()));
+                    bookListTable.getColumn("Edit").setCellEditor(new ButtonEditor(new JCheckBox(), bookListTable, columns));
                 }
             }
         });
@@ -670,7 +697,8 @@ public class LibraryCatalogManagement {
                         authorInput.getText(),
                         summaryInput.getText(),
                         dateDayInput.getSelectedItem().toString() +"-"+ dateMonthInput.getSelectedItem().toString() +"-"+ dateYearInput.getSelectedItem().toString(),
-                        Math.round(priceValue * 100.0) / 100.0
+                        Math.round(priceValue * 100.0) / 100.0,
+                        false
                 ));
                 
                 // save current array into file
@@ -851,8 +879,17 @@ public class LibraryCatalogManagement {
         JPanel createPanel = new JPanel();  // panel for create page
         createPanel.setLayout(new BoxLayout(createPanel, BoxLayout.Y_AXIS));
 
+        // filter bookarray to exclude borrowed book
+        ArrayList<Book> availableBooksArray = new ArrayList<>();
+
+        for (Book book : bookArray) {
+            if (!book.isBorrowed) {
+                availableBooksArray.add(book); // Only add available books
+            }
+        }
+        
         // form
-        Book book = bookArray.get(bookListIndex);
+        Book book = availableBooksArray.get(bookListIndex);
         
         JTextField idInput = new JTextField(); 
         JTextField titleInput = new JTextField();
@@ -910,13 +947,15 @@ public class LibraryCatalogManagement {
                     !authorInput.getText().equals("") &&
                     !summaryInput.getText().equals("")
                 ) {
+                    bookArray.remove(bookListIndex);
                     bookArray.set(bookListIndex, new Book(
                         Integer.parseInt(idInput.getText()),
                         titleInput.getText(),
                         authorInput.getText(),
                         summaryInput.getText(),
                         dateDayInput.getSelectedItem().toString() + "-" + dateMonthInput.getSelectedItem().toString() + "-" + dateYearInput.getSelectedItem().toString(),
-                        Math.round(priceValue * 100.0) / 100.0
+                        Math.round(priceValue * 100.0) / 100.0,
+                        false
                     ));
                     
                     // save current array into file
@@ -1179,7 +1218,7 @@ public class LibraryCatalogManagement {
         DefaultTableModel tableModel = bookingObject.populateTableModel(columns, loggedUser, bookingArray);
         JTable bookingListTable = new JTable(tableModel);
         JScrollPane scrollPane = new JScrollPane(bookingListTable);
-    
+        
         if (loggedUser != null && loggedUser.role.equals("staff")) {
             bookingListTable.getColumn("Action").setCellRenderer(new BookingButtonRenderer());
             bookingListTable.getColumn("Action").setCellEditor(new BookingButtonEditor(new JCheckBox()));

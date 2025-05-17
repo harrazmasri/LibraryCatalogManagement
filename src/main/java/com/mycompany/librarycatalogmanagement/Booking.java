@@ -31,6 +31,11 @@ public class Booking {
         try {
             Files.createDirectories(path.getParent());
             try (BufferedWriter writer = Files.newBufferedWriter(path, StandardOpenOption.CREATE, StandardOpenOption.APPEND)) {
+                // update book as borrowed
+                Book bookObject = new Book();
+                bookObject.updateBook(booking.bookId, true);
+                
+                // save book into booking
                 String bookingData = String.format(
                     "%s,%d,%s,%s",
                     booking.borrower,
